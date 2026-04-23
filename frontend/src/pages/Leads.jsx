@@ -221,7 +221,7 @@ export default function Leads() {
       if (statusFilter) params.status = statusFilter;
       if (search) params.search = search;
       const { data } = await api.get('/leads', { params });
-      setLeads(data);
+      setLeads(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error(err);
     } finally {
