@@ -53,49 +53,56 @@ export default function Dashboard() {
           <p className="text-gray-400">Loading...</p>
         ) : (
           <>
-            {/* Lead Stage Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <StatCard label="Total Leads" value={stats.total} icon="👥" color="bg-blue-50" />
-              <StatCard label="Emails Sent" value={stats.emailSent} icon="📤" color="bg-purple-50" />
-              <StatCard label="Replied" value={stats.replied} icon="💬" color="bg-yellow-50" />
-              <StatCard label="Interested" value={stats.interested} icon="⭐" color="bg-green-50" />
-              <StatCard label="Clients" value={stats.clients} icon="🏆" color="bg-red-50" />
+            {/* Row 1 — Lead Pipeline Stats */}
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Lead Pipeline</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                <StatCard label="Total Leads" value={stats.total} icon="👥" color="bg-blue-50" />
+                <StatCard label="In Email Sent" value={stats.emailSent} icon="📤" color="bg-purple-50" sub="current stage" />
+                <StatCard label="Replied" value={stats.replied} icon="💬" color="bg-yellow-50" />
+                <StatCard label="Interested" value={stats.interested} icon="⭐" color="bg-green-50" />
+                <StatCard label="Clients" value={stats.clients} icon="🏆" color="bg-red-50" />
+              </div>
             </div>
 
-            {/* Email Stats Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <StatCard
-                label="Total Emails Sent"
-                value={emailStats.totalSent}
-                icon="📨"
-                color="bg-indigo-50"
-              />
-              <StatCard
-                label="Emails Opened"
-                value={emailStats.totalOpened}
-                icon="👁"
-                color="bg-emerald-50"
-                sub={`out of ${emailStats.totalSent} sent`}
-              />
-              <div className="card flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-orange-50">
-                  📈
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm text-gray-500">Open Rate</p>
-                  <p className="text-2xl font-bold text-gray-800">{emailStats.openRate}%</p>
-                  <div className="mt-1 w-full bg-gray-100 rounded-full h-1.5">
-                    <div
-                      className="h-1.5 rounded-full bg-orange-400 transition-all"
-                      style={{ width: `${emailStats.openRate}%` }}
-                    />
+            {/* Row 2 — Email Performance Stats (from logs, never decreases) */}
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Email Performance</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <StatCard
+                  label="Total Emails Sent"
+                  value={emailStats.totalSent}
+                  icon="📨"
+                  color="bg-indigo-50"
+                  sub="all time, never decreases"
+                />
+                <StatCard
+                  label="Emails Opened"
+                  value={emailStats.totalOpened}
+                  icon="👁"
+                  color="bg-emerald-50"
+                  sub={`out of ${emailStats.totalSent} sent`}
+                />
+                <div className="card flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-orange-50">
+                    📈
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-500">Open Rate</p>
+                    <p className="text-2xl font-bold text-gray-800">{emailStats.openRate}%</p>
+                    <div className="mt-1.5 w-full bg-gray-100 rounded-full h-2">
+                      <div
+                        className="h-2 rounded-full bg-orange-400 transition-all"
+                        style={{ width: `${emailStats.openRate}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Emails Per Day Chart */}
               <div className="card">
                 <h3 className="font-semibold text-gray-700 mb-4">Emails Sent & Opened Per Day (Last 14 Days)</h3>
                 {chartData.length === 0 ? (
@@ -113,7 +120,6 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {/* Funnel Chart */}
               <div className="card">
                 <h3 className="font-semibold text-gray-700 mb-4">Lead Funnel Conversion</h3>
                 <ResponsiveContainer width="100%" height={220}>
