@@ -330,7 +330,16 @@ export default function Leads() {
                     <td className="px-4 py-3 text-gray-600">{lead.email}</td>
                     <td className="px-4 py-3 text-gray-600">{lead.productType || '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`badge ${STATUS_COLORS[lead.status]}`}>{lead.status}</span>
+                      <select
+                        value={lead.status}
+                        onChange={async (e) => {
+                          await api.put(`/leads/${lead._id}`, { status: e.target.value });
+                          fetchLeads();
+                        }}
+                        className={`badge border-0 cursor-pointer text-xs font-medium rounded-full px-2 py-0.5 ${STATUS_COLORS[lead.status]}`}
+                      >
+                        {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
                     </td>
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
                       {lead.lastContacted ? new Date(lead.lastContacted).toLocaleDateString() : '—'}
