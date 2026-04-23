@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, FunnelChart,
 import Navbar from '../components/Navbar';
 import api from '../services/api';
 
-const StatCard = ({ label, value, color, icon }) => (
+const StatCard = ({ label, value, color, icon, sub }) => (
   <div className="card flex items-center gap-4">
     <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${color}`}>
       {icon}
@@ -11,12 +11,14 @@ const StatCard = ({ label, value, color, icon }) => (
     <div>
       <p className="text-sm text-gray-500">{label}</p>
       <p className="text-2xl font-bold text-gray-800">{value}</p>
+      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
     </div>
   </div>
 );
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ total: 0, emailSent: 0, replied: 0, interested: 0, clients: 0 });
+  const [emailStats, setEmailStats] = useState({ totalSent: 0, totalOpened: 0, openRate: 0 });
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -24,10 +26,12 @@ export default function Dashboard() {
     Promise.all([
       api.get('/leads/stats'),
       api.get('/logs/chart/per-day'),
+      api.get('/logs/stats'),
     ])
-      .then(([statsRes, chartRes]) => {
+      .then(([statsRes, chartRes, emailStatsRes]) => {
         setStats(statsRes.data);
-        setChartData(chartRes.data.map((d) => ({ date: d._id, emails: d.count })));
+        setChartData(chartRes.data.map((d) => ({ date: d._id, sent: d.count, opened: d.opened || 0 })));
+        setEmailStats(emailStatsRes.data);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -49,7 +53,7 @@ export default function Dashboard() {
           <p className="text-gray-400">Loading...</p>
         ) : (
           <>
-            {/* Stat Cards */}
+            {/* Lead Stage Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <StatCard label="Total Leads" value={stats.total} icon="👥" color="bg-blue-50" />
               <StatCard label="Emails Sent" value={stats.emailSent} icon="📤" color="bg-purple-50" />
@@ -58,10 +62,42 @@ export default function Dashboard() {
               <StatCard label="Clients" value={stats.clients} icon="🏆" color="bg-red-50" />
             </div>
 
+            {/* Email Stats Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <StatCard
+                label="Total Emails Sent"
+                value={emailStats.totalSent}
+                icon="📨"
+                color="bg-indigo-50"
+              />
+              <StatCard
+                label="Emails Opened"
+                value={emailStats.totalOpened}
+                icon="👁"
+                color="bg-emerald-50"
+                sub={`out of ${emailStats.totalSent} sent`}
+              />
+              <div className="card flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-orange-50">
+                  📈
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm text-gray-500">Open Rate</p>
+                  <p className="text-2xl font-bold text-gray-800">{emailStats.openRate}%</p>
+                  <div className="mt-1 w-full bg-gray-100 rounded-full h-1.5">
+                    <div
+                      className="h-1.5 rounded-full bg-orange-400 transition-all"
+                      style={{ width: `${emailStats.openRate}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Emails Per Day Chart */}
               <div className="card">
-                <h3 className="font-semibold text-gray-700 mb-4">Emails Sent Per Day (Last 14 Days)</h3>
+                <h3 className="font-semibold text-gray-700 mb-4">Emails Sent & Opened Per Day (Last 14 Days)</h3>
                 {chartData.length === 0 ? (
                   <p className="text-gray-400 text-sm">No email data yet.</p>
                 ) : (
@@ -70,7 +106,8 @@ export default function Dashboard() {
                       <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                       <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
                       <Tooltip />
-                      <Bar dataKey="emails" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="sent" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Sent" />
+                      <Bar dataKey="opened" fill="#10b981" radius={[4, 4, 0, 0]} name="Opened" />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -90,7 +127,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Stage Breakdown */}
+            {/* Pipeline Breakdown */}
             <div className="card">
               <h3 className="font-semibold text-gray-700 mb-4">Pipeline Breakdown</h3>
               <div className="space-y-3">

@@ -42,6 +42,7 @@ const getEmailsPerDay = async (req, res) => {
         $group: {
           _id: { $dateToString: { format: '%Y-%m-%d', date: '$sentAt' } },
           count: { $sum: 1 },
+          opened: { $sum: { $cond: ['$opened', 1, 0] } },
         },
       },
       { $sort: { _id: 1 } },
@@ -53,4 +54,19 @@ const getEmailsPerDay = async (req, res) => {
   }
 };
 
-module.exports = { getLogs, getEmailsPerDay };
+const getEmailStats = async (req, res) => {
+  try {
+    const [totalSent, totalOpened] = await Promise.all([
+      EmailLog.countDocuments({ status: 'sent' }),
+      EmailLog.countDocuments({ status: 'sent', opened: true }),
+    ]);
+
+    const openRate = totalSent > 0 ? Math.round((totalOpened / totalSent) * 100) : 0;
+
+    res.json({ totalSent, totalOpened, openRate });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = { getLogs, getEmailsPerDay, getEmailStats };
