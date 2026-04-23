@@ -46,11 +46,18 @@ const sendOne = async (transporter, lead, subject, body, isFollowUp = false) => 
 
   try {
     await transporter.sendMail({
-      from: `"UGC Outreach" <${process.env.GMAIL_USER}>`,
+      from: `${process.env.GMAIL_USER}`,
+      replyTo: process.env.GMAIL_USER,
       to: lead.email,
       subject: filledSubject,
       text: filledBody,
       html: buildHtml(filledBody, log._id),
+      headers: {
+        'X-Mailer': 'Nodemailer',
+        'X-Priority': '3',
+        'List-Unsubscribe': `<mailto:${process.env.GMAIL_USER}?subject=Unsubscribe>`,
+        'Precedence': 'bulk',
+      },
     });
     return 'sent';
   } catch (err) {
