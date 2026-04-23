@@ -77,16 +77,16 @@ export default function EmailLogs() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 border-b border-gray-100">
                 <tr>
-                  {['Recipient', 'Subject', 'Type', 'Status', 'Sent At'].map((h) => (
+                  {['Recipient', 'Subject', 'Type', 'Status', 'Opened', 'Sent At'].map((h) => (
                     <th key={h} className="text-left px-4 py-3 text-gray-600 font-medium whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {loading ? (
-                  <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>
+                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">Loading…</td></tr>
                 ) : logs.length === 0 ? (
-                  <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">No logs found.</td></tr>
+                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No logs found.</td></tr>
                 ) : logs.map((log) => (
                   <tr key={log._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
@@ -103,6 +103,15 @@ export default function EmailLogs() {
                       <span className={`badge ${log.status === 'sent' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                         {log.status}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {log.status === 'sent' ? (
+                        <span className={`badge ${log.opened ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-500'}`}>
+                          {log.opened ? `✅ Opened` : '👁 Not yet'}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
                       {new Date(log.sentAt).toLocaleString()}

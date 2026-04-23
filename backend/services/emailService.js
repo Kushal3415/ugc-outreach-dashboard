@@ -2,6 +2,8 @@ const nodemailer = require('nodemailer');
 const Lead = require('../models/Lead');
 const EmailLog = require('../models/EmailLog');
 
+const BACKEND_URL = process.env.BACKEND_URL || 'https://ugc-outreach-dashboard-1.onrender.com';
+
 const createTransporter = () =>
   nodemailer.createTransport({
     service: 'gmail',
@@ -11,7 +13,6 @@ const createTransporter = () =>
     },
   });
 
-// Replace {Brand Name}, {Contact Name}, {Product Type} placeholders
 const interpolate = (text, lead) =>
   text
     .replace(/\{Brand Name\}/gi, lead.brandName || '')
@@ -19,24 +20,29 @@ const interpolate = (text, lead) =>
     .replace(/\{Product Type\}/gi, lead.productType || '');
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const randomDelay = () => Math.floor(Math.random() * (120000 - 60000 + 1)) + 60000;
 
-const randomDelay = () => Math.floor(Math.random() * (120000 - 60000 + 1)) + 60000; // 60–120s
+// Build HTML with tracking pixel embedded
+const buildHtml = (body, logId) => {
+  const textHtml = body.replace(/\n/g, '<br>');
+  const pixelUrl = `${BACKEND_URL}/api/track/${logId}`;
+  return `${textHtml}<img src="${pixelUrl}" width="1" height="1" style="display:none;border:0;" alt="" />`;
+};
 
-/**
- * Send a single email and log the result.
- */
 const sendOne = async (transporter, lead, subject, body, isFollowUp = false) => {
   const filledSubject = interpolate(subject, lead);
   const filledBody = interpolate(body, lead);
 
-  const logData = {
+  // Create log first so we have an ID for the tracking pixel
+  const log = await EmailLog.create({
     leadId: lead._id,
     subject: filledSubject,
     message: filledBody,
     recipientEmail: lead.email,
     recipientName: lead.contactName || lead.brandName,
     isFollowUp,
-  };
+    status: 'sent',
+  });
 
   try {
     await transporter.sendMail({
@@ -44,22 +50,16 @@ const sendOne = async (transporter, lead, subject, body, isFollowUp = false) => 
       to: lead.email,
       subject: filledSubject,
       text: filledBody,
-      html: filledBody.replace(/\n/g, '<br>'),
+      html: buildHtml(filledBody, log._id),
     });
-    logData.status = 'sent';
+    return 'sent';
   } catch (err) {
-    logData.status = 'failed';
-    logData.error = err.message;
+    await EmailLog.findByIdAndUpdate(log._id, { status: 'failed', error: err.message });
+    return 'failed';
   }
-
-  await EmailLog.create(logData);
-  return logData.status;
 };
 
-/**
- * Bulk send to Ready leads (max 50 per batch, 60–120s delay between each).
- */
-const sendBulk = async (templateSubject, templateBody, onProgress) => {
+const sendBulk = async (templateSubject, templateBody) => {
   const leads = await Lead.find({ status: 'Ready' }).limit(50);
   if (!leads.length) return { sent: 0, failed: 0, total: 0 };
 
@@ -72,29 +72,18 @@ const sendBulk = async (templateSubject, templateBody, onProgress) => {
 
     if (status === 'sent') {
       results.sent++;
-      await Lead.findByIdAndUpdate(lead._id, {
-        status: 'Email Sent',
-        lastContacted: new Date(),
-      });
+      await Lead.findByIdAndUpdate(lead._id, { status: 'Email Sent', lastContacted: new Date() });
     } else {
       results.failed++;
     }
 
-    if (onProgress) onProgress({ index: i + 1, total: leads.length, leadEmail: lead.email, status });
-
-    // Delay between sends (skip delay after last email)
-    if (i < leads.length - 1) {
-      await sleep(randomDelay());
-    }
+    if (i < leads.length - 1) await sleep(randomDelay());
   }
 
   return results;
 };
 
-/**
- * Send follow-up emails to leads where lastContacted > 3 days ago and status = Email Sent.
- */
-const sendFollowUps = async (templateSubject, templateBody, onProgress) => {
+const sendFollowUps = async (templateSubject, templateBody) => {
   const threeDaysAgo = new Date();
   threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
@@ -123,11 +112,7 @@ const sendFollowUps = async (templateSubject, templateBody, onProgress) => {
       results.failed++;
     }
 
-    if (onProgress) onProgress({ index: i + 1, total: leads.length, leadEmail: lead.email, status });
-
-    if (i < leads.length - 1) {
-      await sleep(randomDelay());
-    }
+    if (i < leads.length - 1) await sleep(randomDelay());
   }
 
   return results;

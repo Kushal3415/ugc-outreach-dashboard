@@ -9,6 +9,8 @@ const emailLogSchema = new mongoose.Schema({
   status: { type: String, enum: ['sent', 'failed'], default: 'sent' },
   error: { type: String, default: '' },
   isFollowUp: { type: Boolean, default: false },
+  opened: { type: Boolean, default: false },
+  openedAt: { type: Date, default: null },
   sentAt: { type: Date, default: Date.now },
 }, { timestamps: true });
 

@@ -12,6 +12,7 @@ app.use(cors({ origin: true, credentials: false }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use('/api/track', require('./routes/track'));
 app.use('/api/leads', require('./routes/leads'));
 app.use('/api/templates', require('./routes/templates'));
 app.use('/api/emails', require('./routes/emails'));
